@@ -10,6 +10,7 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
 
 from sklearn.inspection import permutation_importance
 
@@ -18,56 +19,20 @@ from sklearn.inspection import permutation_importance
 data = pd.read_csv("License_Data.csv", sep=",")
 
 
-def data_overview(df):
-    # count null values per column
-    print(df.isnull().sum(), sep='\n')
-    # print column type
-    print(df.dtypes)
+data = data.set_index("ID")
+data = data.drop(["LICENSE ID", "ACCOUNT NUMBER", "LEGAL NAME", "DOING BUSINESS AS NAME",
+                  "ADDRESS", "ZIP CODE", "LOCATION"], axis=1)
+data = data.drop(columns=data.columns[((data.isna().sum()/len(data)) > 0.60)])
 
-#data_overview(data)
-
-
-# remove wrong zip codes
-# data["ZIP CODE"] = data["ZIP CODE"].replace(r"[a-zA-Z]", np.nan, regex=True)
-# specify dytpe of zip code column
-# data["ZIP CODE"] = pd.to_numeric(data["ZIP CODE"])
-
-
-def feature_importance(model_imp):
-    imp = model_imp
-    features = X_train.columns
-    indices = np.argsort(imp)
-    plt.title('Feature Importance')
-    plt.barh(range(len(indices)), imp[indices], align='center')
-    plt.yticks(range(len(indices)), [features[i] for i in indices])
-    plt.show()
-
-
-def f_importances(model, x, y):
-    perm_importance = permutation_importance(model, x, y)
-
-    feature_names = x.columns
-    features = np.array(feature_names)
-
-    sorted_idx = perm_importance.importances_mean.argsort()
-    plt.barh(features[sorted_idx], perm_importance.importances_mean[sorted_idx])
-    plt.xlabel("Permutation Importance")
-    plt.show()
-
-
-df_prep = data.copy()
-df_prep = df_prep.drop(["LICENSE ID", "ACCOUNT NUMBER", "LEGAL NAME", "DOING BUSINESS AS NAME",
-                        "ADDRESS", "CITY", "STATE", "ZIP CODE"], axis=1)
-df_prep = df_prep.set_index("ID")
-y = df_prep["LICENSE STATUS"]
+y = data["LICENSE STATUS"]
+X = data.drop(["LICENSE STATUS"], axis=1)
 
 le = LabelEncoder()
-df_prep = df_prep.apply(le.fit_transform)
+X = X.apply(le.fit_transform)
 
 ss = StandardScaler()
-df_prep = pd.DataFrame(ss.fit_transform(df_prep), columns=df_prep.columns)
+X = pd.DataFrame(ss.fit_transform(X), columns=X.columns)
 
-X = df_prep.drop(["LICENSE STATUS"], axis=1)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
 
@@ -80,6 +45,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 # plt.matshow(c_matrix, cmap=plt.cm.gray)
 # plt.show()
 # feature_importance(tree.feature_importances_ )
+# feature_importance(tree, X_test, y_test)
 
 
 # svc = LinearSVC(max_iter=10000)
@@ -90,11 +56,43 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 # c_matrix = confusion_matrix(y_train, y_train_pred)
 # plt.matshow(c_matrix, cmap=plt.cm.gray)
 # plt.show()
-# f_importances(svc, X_test, y_test)
+# feature_importance(svc, X_test, y_test)
 
 
-knn = KNeighborsClassifier()
-knn.fit(X_train, y_train)
+# knn = KNeighborsClassifier()
+# knn.fit(X_train, y_train)
 # cv_score = cross_val_score(knn, X_train, y_train).mean().round(4)
 # print(cv_score)
-f_importances(knn, X_test, y_test)
+# feature_importance(knn, X_test, y_test)
+
+
+def feature_importance(model, x, y):
+    perm_importance = permutation_importance(model, x, y)
+
+    feature_names = x.columns
+    features = np.array(feature_names)
+
+    sorted_idx = perm_importance.importances_mean.argsort()
+    plt.barh(features[sorted_idx], perm_importance.importances_mean[sorted_idx])
+    plt.xlabel("Permutation Importance")
+    plt.show()
+
+
+def compare_algo():
+    algs = [('tree', DecisionTreeClassifier()),
+            ('svc', LinearSVC(max_iter=10000)),
+            ('knn', KNeighborsClassifier())]
+
+    results = []
+    names = []
+
+    for name, model in algs:
+        cv_results = cross_val_score(model, X_train, y_train)
+        results.append(cv_results)
+        names.append(name)
+
+    plt.boxplot(results, labels=names)
+    plt.title('Algorithm Comparison')
+    plt.xlabel("Alogrithm")
+    plt.ylabel("cross-validation-score")
+    plt.show()
