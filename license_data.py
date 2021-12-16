@@ -11,6 +11,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
 from sklearn.neighbors import KNeighborsClassifier
 
+from sklearn.metrics import confusion_matrix
 from sklearn.inspection import permutation_importance
 
 
@@ -60,7 +61,7 @@ def runtime(model, x):
 
 data = data.set_index("ID")
 data = data.drop(["LICENSE ID", "ACCOUNT NUMBER", "LEGAL NAME", "DOING BUSINESS AS NAME",
-                  "ADDRESS", "LOCATION", "ZIP CODE"], axis=1)
+                  "ADDRESS", "LOCATION", "ZIP CODE", "LICENSE DESCRIPTION"], axis=1)
 data = data.drop(columns=data.columns[((data.isna().sum()/len(data)) > 0.60)])
 y = data["LICENSE STATUS"]
 
@@ -94,11 +95,23 @@ knn.fit(X_train, y_train)
 # print(f"KNeighborsClassifier {knn_score}")
 
 
+# tree_pred = tree.predict(X_test)
+# confusion_matrix(y_test, tree_pred)
+#
+# svc_pred = svc.predict(X_test)
+# confusion_matrix(y_test, svc_pred)
+#
+# knn_pred = knn.predict(X_test)
+# confusion_matrix(y_test, knn_pred)
+
+
 # compare_algo()
+
 
 # feature_importance(tree, X_test, y_test)
 # feature_importance(svc, X_test, y_test)
 # feature_importance(knn, X_test, y_test, 'neg_mean_squared_error')
+
 
 # runtime(tree, X_test)
 # runtime(svc, X_test)
